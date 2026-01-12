@@ -81,7 +81,7 @@ export default function UploadCard({
                   <p className="text-sm text-gray-500">
                     <span className="font-medium text-primary-600">Click to upload</span> or drag and drop
                   </p>
-                  <p className="text-xs text-gray-400">Max file size: 100MB</p>
+                  <p className="text-xs text-gray-400">Max file size: 50MB</p>
                 </div>
               </label>
               <input 
