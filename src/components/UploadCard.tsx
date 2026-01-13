@@ -3,9 +3,9 @@ import { useState, useCallback } from 'react'
 import { Upload, Copy, Check, FileText, X, Loader2 } from 'lucide-react'
 
 interface UploadCardProps {
-  onFileChange: (file: File) => void
-  onRemoveFile: () => void
-  uploadedFile: File | null
+  onFileChange: (files: File[]) => void
+  onRemoveFile: (index: number) => void
+  uploadedFiles: File[]
   password: string
   setPassword: (password: string) => void
   expiry: string
@@ -22,7 +22,7 @@ interface UploadCardProps {
 export default function UploadCard({
   onFileChange,
   onRemoveFile,
-  uploadedFile,
+  uploadedFiles,
   password,
   setPassword,
   expiry,
@@ -51,15 +51,15 @@ export default function UploadCard({
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      onFileChange(e.dataTransfer.files[0])
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      onFileChange(Array.from(e.dataTransfer.files))
     }
   }, [onFileChange])
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault()
-    if (e.target.files && e.target.files[0]) {
-      onFileChange(e.target.files[0])
+    if (e.target.files && e.target.files.length > 0) {
+      onFileChange(Array.from(e.target.files))
     }
   }, [onFileChange])
 
@@ -81,38 +81,43 @@ export default function UploadCard({
                   <p className="text-sm text-gray-500">
                     <span className="font-medium text-primary-600">Click to upload</span> or drag and drop
                   </p>
-                  <p className="text-xs text-gray-400">Max file size: 50MB</p>
+                  <p className="text-xs text-gray-400">Max file size: 100MB</p>
                 </div>
               </label>
               <input 
                 type="file" 
                 id="file-upload" 
                 className="hidden" 
+                multiple
                 onChange={handleChange}
               />
             </div>
 
-            {uploadedFile && (
-              <div className="mt-4 p-3 bg-primary-50 rounded-lg flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-white rounded-md">
-                    <FileText className="w-5 h-5 text-primary-600" />
+            {uploadedFiles.length > 0 && (
+              <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
+                {uploadedFiles.map((file, index) => (
+                  <div key={index} className="p-3 bg-primary-50 rounded-lg flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-white rounded-md">
+                        <FileText className="w-5 h-5 text-primary-600" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 truncate max-w-[200px]">
+                        {file.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-xs text-gray-500">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </span>
+                      <button
+                        onClick={() => onRemoveFile(index)}
+                        className="text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
-                  <span className="text-sm font-medium text-gray-700 truncate max-w-[200px]">
-                    {uploadedFile.name}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <span className="text-xs text-gray-500">
-                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </span>
-                  <button
-                    onClick={onRemoveFile}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+                ))}
               </div>
             )}
 
@@ -151,8 +156,8 @@ export default function UploadCard({
 
               <button
                 onClick={onGenerateLink}
-                disabled={!password || !uploadedFile || isGenerating}
-                className={`w-full mt-4 py-3 px-4 rounded-md text-white font-medium flex items-center justify-center relative overflow-hidden transition-colors ${password && uploadedFile && !isGenerating ? 'bg-primary-600 hover:bg-primary-700' : 'bg-gray-400 cursor-not-allowed'}`}
+                disabled={!password || uploadedFiles.length === 0 || isGenerating}
+                className={`w-full mt-4 py-3 px-4 rounded-md text-white font-medium flex items-center justify-center relative overflow-hidden transition-colors ${password && uploadedFiles.length > 0 && !isGenerating ? 'bg-primary-600 hover:bg-primary-700' : 'bg-gray-400 cursor-not-allowed'}`}
               >
                 {isGenerating ? (
                   <>
@@ -222,4 +227,3 @@ export default function UploadCard({
     </div>
   )
 }
-  
