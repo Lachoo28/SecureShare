@@ -2,26 +2,7 @@
 import { useState, useCallback } from 'react'
 import { Upload, Copy, Check, FileText, X, Loader2 } from 'lucide-react'
 
-interface UploadCardProps {
-  onFileChange: (files: File[]) => void
-  onRemoveFile: (index: number) => void
-  uploadedFiles: File[]
-  password: string
-  setPassword: (password: string) => void
-  expiry: string
-  setExpiry: (expiry: string) => void
-  onGenerateLink: () => void
-  generatedLink: string
-  copyToClipboard: () => void
-  copied: boolean
-  isGenerating: boolean
-  uploadProgress: number
-  uploadError: string | null
-}
 
-export default function UploadCard({
-  onFileChange,
-  onRemoveFile,
   uploadedFiles,
   password,
   setPassword,
