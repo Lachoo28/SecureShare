@@ -6,7 +6,7 @@ import UploadCard from '../components/UploadCard'
 import FeatureCard from '../components/FeatureCard'
 
 export default function Home() {
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [password, setPassword] = useState('')
   const [expiry, setExpiry] = useState('3')
   const [generatedLink, setGeneratedLink] = useState('')
@@ -26,37 +26,45 @@ export default function Home() {
     fetchGreeting();
   }, [])
 
-  const handleFileChange = useCallback((file: File) => {
-    setUploadedFile(file)
+  const handleFileChange = useCallback((files: File[]) => {
+    setUploadedFiles(prev => [...prev, ...files])
     setUploadError(null)
   }, [])
 
-  const handleRemoveFile = useCallback(() => {
-    setUploadedFile(null)
+  const handleRemoveFile = useCallback((index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index))
   }, [])
 
   const handleGenerateLink = useCallback(async () => {
-    if (!uploadedFile) return;
+    if (uploadedFiles.length === 0) return;
     setIsGenerating(true);
     setUploadError(null);
     setUploadProgress(0);
-    // Fake progress for UX since simple upload doesn't stream progress
-    setUploadProgress(50);
 
     try {
-      const fileName = `${Date.now()}_${uploadedFile.name}`;
-      
-      // 1. Upload file to Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('uploads')
-        .upload(fileName, uploadedFile);
+      const filesData = [];
+      let totalSize = 0;
+      let completed = 0;
 
-      if (uploadError) throw uploadError;
+      // 1. Upload files to Supabase Storage
+      for (const file of uploadedFiles) {
+        const fileName = `${Date.now()}_${file.name}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('uploads')
+          .upload(fileName, file);
 
-      // 2. Get Public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(fileName);
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('uploads')
+          .getPublicUrl(fileName);
+
+        filesData.push({ name: file.name, size: file.size, url: publicUrl });
+        totalSize += file.size;
+        completed++;
+        setUploadProgress((completed / uploadedFiles.length) * 100);
+      }
 
       const expiryDate = new Date();
       expiryDate.setDate(expiryDate.getDate() + parseInt(expiry));
@@ -65,9 +73,9 @@ export default function Home() {
       const { data: insertData, error: insertError } = await supabase
         .from('files')
         .insert({
-          name: uploadedFile.name,
-          size: uploadedFile.size,
-          url: publicUrl,
+          name: uploadedFiles.length === 1 ? uploadedFiles[0].name : `${uploadedFiles.length} files`,
+          size: totalSize,
+          url: JSON.stringify(filesData),
           password: password,
           expiry: expiryDate,
         })
@@ -85,7 +93,7 @@ export default function Home() {
     } finally {
       setIsGenerating(false);
     }
-  }, [uploadedFile, password, expiry]);
+  }, [uploadedFiles, password, expiry]);
 
   const copyToClipboard = useCallback(() => {
     navigator.clipboard.writeText(generatedLink)
@@ -135,7 +143,7 @@ export default function Home() {
         <UploadCard
           onFileChange={handleFileChange}
           onRemoveFile={handleRemoveFile}
-          uploadedFile={uploadedFile}
+          uploadedFiles={uploadedFiles}
           password={password}
           setPassword={setPassword}
           expiry={expiry}
